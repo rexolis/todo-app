@@ -13,7 +13,6 @@ router.beforeEach(async (to) => {
   if (to.meta.auth && !store.authChecked) {
     await store.fetchUser()
   }
-
   if (to.meta.auth && !store.isLoggedIn) {
     return {
       name: 'login',
