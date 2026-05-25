@@ -8,9 +8,9 @@ export const useTaskStore = defineStore('taskStore', () => {
   const uncompletedTasks = computed(() => tasks.value.filter((t) => !t.is_completed))
   const completedTasks = computed(() => tasks.value.filter((t) => t.is_completed))
 
-  const fetchAllTasks = async () => {
+  const fetchAllTasks = async (params = {}) => {
     try {
-      const { data } = await allTasks()
+      const { data } = await allTasks(params)
       tasks.value = data.data
     } catch (error) {
       console.error('Error fetching tasks:', error)
@@ -23,6 +23,7 @@ export const useTaskStore = defineStore('taskStore', () => {
   const handleUpdatedTask = async (task) => {
     const { data: updatedTask } = await updateTask(task.id, {
       name: task.name,
+      priority_id: task.priority_id,
     })
     const currentTask = tasks.value.find((t) => t.id === task.id)
 
