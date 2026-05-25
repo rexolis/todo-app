@@ -14,32 +14,58 @@
         title="Double click the text to edit or remove"
         @dblclick="() => (isEdit = true)"
       >
-        <div class="relative" v-if="isEdit">
-          <input
-            class="editable-task"
-            type="text"
-            v-focus
-            @keyup.esc="undo"
-            @keyup.enter="updateTask"
-            v-model="editingTask"
-            ref="inputRef"
-          />
-          <div class="select-priority">
-            <SelectPriority :selected="selectedPriority" @change="setPriority" />
-          </div>
+        <div v-if="isEdit">
+          <DatePicker
+            v-model="selectedDate"
+            mode="date"
+            :popover="{ placement: 'bottom-end' }"
+            :min-date="new Date()"
+            @update:model-value="focusInput"
+            @dayclick="onDayClick"
+          >
+            <template #default="{ togglePopover }">
+              <div class="relative">
+                <input
+                  class="editable-task"
+                  type="text"
+                  v-focus
+                  @keyup.esc="undo"
+                  @keyup.enter="updateTask"
+                  v-model="editingTask"
+                  ref="inputRef"
+                />
+                <div class="action-buttons">
+                  <SelectPriority :selected="selectedPriority" @change="setPriority" />
+                  <button
+                    class="btn btn-sm btn-light"
+                    @click="togglePopover"
+                    type="button"
+                    title="Set due date"
+                  >
+                    <IconCalendar />
+                  </button>
+                </div>
+              </div>
+            </template>
+          </DatePicker>
         </div>
         <span v-else>{{ task.name }}</span>
       </div>
-      <!-- <div class="task-date">24 Feb 12:00</div> -->
+      <div class="task-date" v-if="!isEdit">{{ formattedDate }}</div>
     </div>
     <TaskActions @edit="() => (isEdit = true)" v-show="!isEdit" @remove="removeTask" />
   </li>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
+import { useDateFormatter } from '../../composables/useDateFormatter'
+import { useFocusInput } from '../../composables/useFocusInput'
 import TaskActions from './TaskActions.vue'
 import SelectPriority from './SelectPriority.vue'
+import IconCalendar from '../icons/IconCalendar.vue'
+import { DatePicker } from 'v-calendar'
+import 'v-calendar/style.css'
 
 const props = defineProps({
   task: {
@@ -48,16 +74,43 @@ const props = defineProps({
   },
 })
 
+const emit = defineEmits(['updated', 'completed', 'removed'])
+
 const inputRef = ref()
+const isEdit = ref(false)
+const editingTask = ref(props.task.name)
 const selectedPriority = ref(props.task.priority?.id || null)
+const { focusInput } = useFocusInput(inputRef)
+const { parseDueDate, formatDateLocal, formatDate } = useDateFormatter()
+
+const selectedDate = ref(parseDueDate(props.task.due_date))
+
+const onDayClick = (_, event) => {
+  event.target.blur()
+}
+
+watch(
+  () => props.task.due_date,
+  (dueDate) => {
+    if (!isEdit.value) {
+      selectedDate.value = parseDueDate(dueDate)
+    }
+  },
+)
+
+watch(isEdit, (editing) => {
+  if (editing) {
+    editingTask.value = props.task.name
+    selectedPriority.value = props.task.priority?.id || null
+    selectedDate.value = parseDueDate(props.task.due_date)
+  }
+})
 
 const setPriority = (id) => {
   selectedPriority.value = id
-  inputRef.value.focus()
+  focusInput()
 }
 
-const emit = defineEmits(['updated', 'completed', 'removed'])
-const isEdit = ref(false)
 const completedClass = computed(() => (props.task.is_completed ? 'completed' : ''))
 
 const vFocus = {
@@ -72,18 +125,18 @@ const updateTask = (event) => {
       ...props.task,
       name: event.target.value,
       priority_id: selectedPriority.value,
+      due_date: selectedDate.value ? formatDateLocal(selectedDate.value) : null,
     }
     isEdit.value = false
     emit('updated', updatedTask)
   }
 }
 
-const editingTask = ref(props.task.name)
-
 const undo = () => {
   editingTask.value = props.task.name
   isEdit.value = false
   selectedPriority.value = props.task.priority?.id || null
+  selectedDate.value = parseDueDate(props.task.due_date)
 }
 
 const markTaskAsCompleted = (event) => {
@@ -106,6 +159,8 @@ const priorityClass = computed(() => {
   const activeClass = classesMap[selectedPriority.value] || 'none'
   return `priority-${activeClass}`
 })
+
+const formattedDate = computed(() => formatDate(props.task.due_date))
 </script>
 
 <style scoped>

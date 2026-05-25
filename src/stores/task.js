@@ -1,4 +1,4 @@
-import { ref, reactive, computed } from 'vue'
+import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 import { allTasks, createTask, updateTask, completeTask, removeTask } from '@/http/task-api'
 
@@ -24,10 +24,14 @@ export const useTaskStore = defineStore('taskStore', () => {
     const { data: updatedTask } = await updateTask(task.id, {
       name: task.name,
       priority_id: task.priority_id,
+      due_date: task.due_date,
     })
     const currentTask = tasks.value.find((t) => t.id === task.id)
 
     currentTask.name = updatedTask.data.name
+    currentTask.due_date = updatedTask.data.due_date
+    currentTask.priority_id = updatedTask.data.priority?.id ?? null
+    currentTask.priority = updatedTask.data.priority
   }
   const handleCompletedTask = async (task) => {
     const { data: updatedTask } = await completeTask(task.id, {

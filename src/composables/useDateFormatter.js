@@ -1,4 +1,10 @@
 export function useDateFormatter() {
+  const parseDueDate = (value) => {
+    if (!value) return null
+    const date = value instanceof Date ? value : new Date(value)
+    return Number.isNaN(date.getTime()) ? null : date
+  }
+
   const formatDateLocal = (dateObj) => {
     if (!dateObj) return null
     const year = dateObj.getFullYear()
@@ -20,6 +26,7 @@ export function useDateFormatter() {
   }
 
   return {
+    parseDueDate,
     formatDateLocal,
     formatDate,
   }

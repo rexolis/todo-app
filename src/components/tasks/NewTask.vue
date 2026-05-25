@@ -1,9 +1,11 @@
 <template>
   <DatePicker
-    v-model="newTask.due_date"
+    v-model="dueDate"
+    mode="date"
     :popover="{ placement: 'bottom-end' }"
     :min-date="new Date()"
     @update:model-value="focusInput"
+    @dayclick="onDayClick"
   >
     <template #default="{ togglePopover }">
       <div class="relative">
@@ -47,11 +49,16 @@ const inputRef = ref()
 const { focusInput } = useFocusInput(inputRef)
 const { formatDateLocal } = useDateFormatter()
 
+const dueDate = ref(null)
+
+const onDayClick = (_, event) => {
+  event.target.blur()
+}
+
 const newTask = reactive({
   name: '',
   is_completed: false,
   priority_id: null,
-  due_date: null,
 })
 
 const setPriority = (id) => {
@@ -62,9 +69,13 @@ const setPriority = (id) => {
 const addNewTask = async (event) => {
   if (event.target.value.trim()) {
     newTask.name = event.target.value
-    newTask.due_date = formatDateLocal(newTask.due_date)
     event.target.value = ''
-    await handleAddedTask(newTask)
+    await handleAddedTask({
+      ...newTask,
+      due_date: formatDateLocal(dueDate.value),
+    })
+    dueDate.value = null
+    newTask.priority_id = null
   }
 }
 </script>
